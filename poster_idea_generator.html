@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор идей для плакатов</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #2d3436 0%, #000000 100%);
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 42px;
+            margin-bottom: 40px;
+            font-weight: 700;
+        }
+
+        .start-screen, .result-screen {
+            display: none;
+        }
+
+        .start-screen.active, .result-screen.active {
+            display: block;
+        }
+
+        .description {
+            color: #b2bec3;
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 50px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        button {
+            background: #fff;
+            color: #000;
+            border: none;
+            padding: 20px 60px;
+            font-size: 24px;
+            font-weight: 600;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(255, 255, 255, 0.3);
+        }
+
+        button:active {
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            color: #fff;
+            font-size: 20px;
+            margin-top: 30px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .result-box {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px 30px;
+            width: 250px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .result-box:hover {
+            transform: translateY(-5px);
+        }
+
+        .result-label {
+            font-size: 14px;
+            color: #636e72;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .result-word {
+            font-size: 32px;
+            color: #000;
+            font-weight: 700;
+            word-wrap: break-word;
+        }
+
+        .status-text {
+            color: #b2bec3;
+            font-size: 16px;
+            margin-top: 20px;
+            min-height: 24px;
+        }
+
+        .sources-link {
+            color: #fff;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 30px;
+            display: inline-block;
+            transition: color 0.3s ease;
+        }
+
+        .sources-link:hover {
+            color: #b2bec3;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #000;
+            color: #fff;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            line-height: 1;
+            transition: background 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: #333;
+            transform: none;
+        }
+
+        .modal h2 {
+            color: #000;
+            margin-bottom: 25px;
+            font-size: 28px;
+        }
+
+        .source-item {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .source-item:last-child {
+            border-bottom: none;
+        }
+
+        .source-title {
+            color: #000;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+
+        .source-link {
+            color: #0984e3;
+            text-decoration: none;
+            font-size: 14px;
+            word-break: break-all;
+        }
+
+        .source-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="start-screen active">
+            <h1>Генератор идей для плакатов</h1>
+            <p class="description">
+                Программа анализирует актуальные мировые новости и находит самые популярные слова, 
+                упоминания цветов и форм для вдохновения в создании дизайна плакатов.
+            </p>
+            <button onclick="startGeneration()">Начать</button>
+            <div class="loading">
+                <div class="spinner"></div>
+                <p class="status-text" id="status">Анализируем новости...</p>
+            </div>
+        </div>
+
+        <div class="result-screen">
+            <h1>Ваши идеи для плаката</h1>
+            <div class="results">
+                <div class="result-box">
+                    <div class="result-label">Ключевое слово</div>
+                    <div class="result-word" id="word1">—</div>
+                </div>
+                <div class="result-box">
+                    <div class="result-label">Цвет</div>
+                    <div class="result-word" id="word2">—</div>
+                </div>
+                <div class="result-box">
+                    <div class="result-label">Форма</div>
+                    <div class="result-word" id="word3">—</div>
+                </div>
+            </div>
+            <div>
+                <span class="sources-link" onclick="showSources()">Источники</span>
+            </div>
+            <button onclick="repeatGeneration()" id="repeatBtn">Повторить</button>
+        </div>
+    </div>
+
+    <div class="modal" id="sourcesModal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeSources()">×</button>
+            <h2>Источники новостей</h2>
+            <div id="sourcesList"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentSources = [];
+
+        const colorDictionary = {
+            'red': 'красный', 'blue': 'синий', 'green': 'зелёный', 'yellow': 'жёлтый',
+            'black': 'чёрный', 'white': 'белый', 'orange': 'оранжевый', 'purple': 'фиолетовый',
+            'pink': 'розовый', 'brown': 'коричневый', 'gray': 'серый', 'grey': 'серый',
+            'golden': 'золотой', 'silver': 'серебряный', 'dark': 'тёмный', 'light': 'светлый',
+            'bright': 'яркий', 'pale': 'бледный', 'crimson': 'малиновый', 'azure': 'лазурный'
+        };
+
+        const shapeDictionary = {
+            'circle': 'круг', 'square': 'квадрат', 'triangle': 'треугольник', 'rectangle': 'прямоугольник',
+            'oval': 'овал', 'sphere': 'сфера', 'cube': 'куб', 'pyramid': 'пирамида',
+            'star': 'звезда', 'arrow': 'стрелка', 'line': 'линия', 'wave': 'волна',
+            'spiral': 'спираль', 'cross': 'крест', 'ring': 'кольцо', 'hexagon': 'шестиугольник',
+            'diamond': 'ромб', 'arc': 'дуга', 'curve': 'кривая', 'angular': 'угловатый',
+            'round': 'круглый', 'sharp': 'острый', 'curved': 'изогнутый', 'flat': 'плоский'
+        };
+
+        const wordDictionary = {
+            'trump': 'Трамп', 'climate': 'климат', 'technology': 'технология', 'health': 'здоровье',
+            'economy': 'экономика', 'war': 'война', 'peace': 'мир', 'election': 'выборы',
+            'crisis': 'кризис', 'growth': 'рост', 'change': 'изменение', 'innovation': 'инновация',
+            'energy': 'энергия', 'future': 'будущее', 'global': 'глобальный', 'security': 'безопасность',
+            'market': 'рынок', 'power': 'власть', 'people': 'люди', 'world': 'мир',
+            'country': 'страна', 'president': 'президент', 'government': 'правительство',
+            'china': 'Китай', 'russia': 'Россия', 'ukraine': 'Украина', 'europe': 'Европа',
+            'america': 'Америка', 'asia': 'Азия', 'water': 'вода', 'fire': 'огонь',
+            'earth': 'земля', 'air': 'воздух', 'space': 'космос', 'digital': 'цифровой',
+            'artificial': 'искусственный', 'intelligence': 'интеллект', 'pandemic': 'пандемия',
+            'vaccine': 'вакцина', 'oil': 'нефть', 'gas': 'газ', 'trade': 'торговля',
+            'conflict': 'конфликт', 'migration': 'миграция', 'border': 'граница',
+            'police': 'полиция', 'court': 'суд', 'death': 'смерть', 'attack': 'атака',
+            'military': 'военный', 'nuclear': 'ядерный', 'missile': 'ракета', 'strike': 'удар'
+        };
+
+        async function fetchNews() {
+            const sources = [
+                'https://rss.nytimes.com/services/xml/rss/nyt/World.xml',
+                'https://feeds.bbci.co.uk/news/world/rss.xml',
+                'https://www.theguardian.com/world/rss'
+            ];
+
+            let allTexts = [];
+            currentSources = [];
+
+            for (let source of sources) {
+                try {
+                    const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(source)}`);
+                    const data = await response.json();
+
+                    if (data.items) {
+                        data.items.slice(0, 10).forEach(item => {
+                            allTexts.push(item.title + ' ' + (item.description || ''));
+                            currentSources.push({
+                                title: item.title,
+                                link: item.link
+                            });
+                        });
+                    }
+                } catch (error) {
+                    console.log('Ошибка загрузки источника:', error);
+                }
+            }
+
+            return allTexts.join(' ').toLowerCase();
+        }
+
+        function findMostCommonWord(text) {
+            const words = text.match(/[a-z]{4,}/gi) || [];
+            const stopWords = ['that', 'this', 'with', 'from', 'have', 'been', 'were', 'said', 'will', 'their', 'would', 'about', 'more', 'says', 'after', 'could', 'when', 'where', 'what', 'which', 'some', 'there', 'than', 'them', 'these', 'those', 'very', 'also', 'into', 'over', 'just', 'most', 'only', 'other', 'such', 'time', 'year', 'years', 'many', 'first', 'last', 'under', 'make', 'back', 'before', 'while', 'take', 'away', 'then', 'well', 'come', 'even', 'much', 'since', 'still', 'being', 'both', 'each', 'down', 'like'];
+
+            const frequency = {};
+            words.forEach(word => {
+                word = word.toLowerCase();
+                if (!stopWords.includes(word) && word.length > 4) {
+                    frequency[word] = (frequency[word] || 0) + 1;
+                }
+            });
+
+            let maxWord = '';
+            let maxCount = 0;
+            for (let word in frequency) {
+                if (frequency[word] > maxCount) {
+                    maxCount = frequency[word];
+                    maxWord = word;
+                }
+            }
+
+            if (!maxWord) {
+                const fallbackWords = ['change', 'future', 'power', 'climate', 'technology'];
+                maxWord = fallbackWords[Math.floor(Math.random() * fallbackWords.length)];
+            }
+
+            return wordDictionary[maxWord] || (maxWord.charAt(0).toUpperCase() + maxWord.slice(1));
+        }
+
+        function findColor(text) {
+            const colors = Object.keys(colorDictionary);
+            const foundColors = {};
+
+            colors.forEach(color => {
+                const regex = new RegExp('\b' + color + '\b', 'gi');
+                const matches = text.match(regex);
+                if (matches) {
+                    foundColors[color] = matches.length;
+                }
+            });
+
+            let maxColor = '';
+            let maxCount = 0;
+            for (let color in foundColors) {
+                if (foundColors[color] > maxCount) {
+                    maxCount = foundColors[color];
+                    maxColor = color;
+                }
+            }
+
+            if (!maxColor) {
+                const randomColors = ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'black', 'white'];
+                maxColor = randomColors[Math.floor(Math.random() * randomColors.length)];
+            }
+
+            return colorDictionary[maxColor] || maxColor;
+        }
+
+        function findShape(text) {
+            const shapes = Object.keys(shapeDictionary);
+            const foundShapes = {};
+
+            shapes.forEach(shape => {
+                const regex = new RegExp('\b' + shape + '\b', 'gi');
+                const matches = text.match(regex);
+                if (matches) {
+                    foundShapes[shape] = matches.length;
+                }
+            });
+
+            let maxShape = '';
+            let maxCount = 0;
+            for (let shape in foundShapes) {
+                if (foundShapes[shape] > maxCount) {
+                    maxCount = foundShapes[shape];
+                    maxShape = shape;
+                }
+            }
+
+            if (!maxShape) {
+                const randomShapes = ['circle', 'square', 'triangle', 'line', 'star', 'wave'];
+                maxShape = randomShapes[Math.floor(Math.random() * randomShapes.length)];
+            }
+
+            return shapeDictionary[maxShape] || maxShape;
+        }
+
+        async function startGeneration() {
+            document.querySelector('.start-screen button').style.display = 'none';
+            document.querySelector('.loading').classList.add('active');
+
+            await performGeneration();
+        }
+
+        async function repeatGeneration() {
+            const repeatBtn = document.getElementById('repeatBtn');
+            repeatBtn.disabled = true;
+            repeatBtn.textContent = 'Генерируем...';
+
+            await performGeneration();
+
+            repeatBtn.disabled = false;
+            repeatBtn.textContent = 'Повторить';
+        }
+
+        async function performGeneration() {
+            try {
+                document.getElementById('status').textContent = 'Собираем новости из мировых источников...';
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                const newsText = await fetchNews();
+
+                if (!newsText || newsText.length < 100) {
+                    throw new Error('Недостаточно данных для анализа');
+                }
+
+                document.getElementById('status').textContent = 'Анализируем заголовки статей...';
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                const word1 = findMostCommonWord(newsText);
+
+                document.getElementById('status').textContent = 'Ищем упоминания цветов...';
+                await new Promise(resolve => setTimeout(resolve, 800));
+
+                const word2 = findColor(newsText);
+
+                document.getElementById('status').textContent = 'Извлекаем описания форм...';
+                await new Promise(resolve => setTimeout(resolve, 800));
+
+                const word3 = findShape(newsText);
+
+                document.getElementById('status').textContent = 'Генерируем результаты...';
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                document.getElementById('word1').textContent = word1;
+                document.getElementById('word2').textContent = word2;
+                document.getElementById('word3').textContent = word3;
+
+                document.querySelector('.start-screen').classList.remove('active');
+                document.querySelector('.result-screen').classList.add('active');
+
+            } catch (error) {
+                document.getElementById('status').textContent = 'Произошла ошибка при загрузке новостей. Попробуйте ещё раз.';
+                document.querySelector('.start-screen button').style.display = 'inline-block';
+                document.querySelector('.loading').classList.remove('active');
+                console.error('Ошибка:', error);
+            }
+        }
+
+        function showSources() {
+            const modal = document.getElementById('sourcesModal');
+            const sourcesList = document.getElementById('sourcesList');
+
+            sourcesList.innerHTML = '';
+
+            if (currentSources.length === 0) {
+                sourcesList.innerHTML = '<p style="color: #636e72;">Источники недоступны</p>';
+            } else {
+                currentSources.forEach(source => {
+                    const sourceItem = document.createElement('div');
+                    sourceItem.className = 'source-item';
+
+                    const title = document.createElement('div');
+                    title.className = 'source-title';
+                    title.textContent = source.title;
+
+                    const link = document.createElement('a');
+                    link.className = 'source-link';
+                    link.href = source.link;
+                    link.textContent = source.link;
+                    link.target = '_blank';
+
+                    sourceItem.appendChild(title);
+                    sourceItem.appendChild(link);
+                    sourcesList.appendChild(sourceItem);
+                });
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeSources() {
+            document.getElementById('sourcesModal').classList.remove('active');
+        }
+
+        document.getElementById('sourcesModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeSources();
+            }
+        });
+    </script>
+</body>
+</html>
